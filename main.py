@@ -185,7 +185,6 @@ if not st.session_state.usuario_autenticado:
                 conn.close()
                 
                 if resultado:
-                    # CORRECCIÓN DE TUPLA: Desempaqueta y limpia cada elemento de forma individual
                     nom, ape, archivo_db = resultado
                     st.session_state.usuario_autenticado = True
                     st.session_state.nombre_usuario = f"{nom} {ape}"
@@ -328,7 +327,33 @@ else:
 # Inicializar o cargar de forma segura la base de datos del usuario autenticado
 init_db()
 
-# Etiqueta de bienvenida y privacidad
+# 🧲 DETECTOR INTELIGENTE DE ATAJO MÓVIL: Lee si se disparó el modo ultra rápido
+parametros_url = st.query_params
+es_modo_rapido = parametros_url.get("modo") == "rapido"
+
+# SI ES MODO RÁPIDO: Oculta todo el panel pesado y va directo al grano
+if es_modo_rapido:
+    st.write(f"⚡ Carga rápida para: **{st.session_state.nombre_usuario}**")
+    
+    monto = st.number_input("Monto ($)", value=None, placeholder="Introduce un número", format="%.2f", key="monto_fijo_fast")
+    lista_cats = obtener_categorias()
+    lista_limpia = [str(c).replace("('", "").replace("',)", "").replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("'", "").strip() for c in lista_cats]
+    categoria_seleccionada = st.selectbox("Categoria", options=lista_limpia, key="cat_fast")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Cargar", key="btn_cargar_fast", use_container_width=True):
+        if monto is None or monto <= 0:
+            st.error("El monto tiene que ser mayor a 0.")
+        else:
+            guardar_gasto_db(monto, categoria_seleccionada)
+            st.success(f"¡Anotado ${monto:.2f}!")
+            st.info("Ya podés cerrar este panel.")
+            st.stop()
+            
+    st.stop() # Frena la ejecución del código acá para no dibujar el resto de la app pesada
+
+# --- MODO NORMAL COMERCIAL: (Se ejecuta si abrís la app desde el escritorio) ---
+
 st.write(f"🔒 Cuenta activa: **{st.session_state.nombre_usuario}**")
 
 df_mes = obtener_datos_mes_actual()
@@ -445,7 +470,7 @@ if st.session_state.mostrar_config:
                 st.success(f"Categoria '{nueva_cat}' agregada con éxito.")
                 st.rerun()
 
-# --- BOTÓN DE SALIDA SEGURO (LIMPIO SIN TEXTOS ROTOS) ---
+# --- BOTÓN DE SALIDA SEGURO ---
 st.markdown("---")
 if st.button("🔒 Cerrar Sesión Privada", use_container_width=True):
     st.session_state.usuario_autenticado = False
