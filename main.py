@@ -8,7 +8,7 @@ from datetime import datetime
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="iFinance - Gastos Express", page_icon="💰", layout="centered")
 
-# 🎨 INYECCIÓN DE ESTILOS DEFINITIVA (MANTIENE TUS 6 ÍTEMS DE ILLUSTRATOR)
+# 🎨 INYECCIÓN DE ESTILOS BLINDADA (MANTIENE TUS 6 ÍTEMS DE ILLUSTRATOR)
 st.markdown(
     """
     <style>
@@ -91,12 +91,12 @@ st.markdown(
         margin-top: 20px !important;
     }
     
-    /* 🟨 FORZADO PREMIUM: Estilo amarillo con letras negras directo sobre todos los botones nativos de la app */
+    /* 🟨 FORZADO DE BOTONES NATIVOS (AMARILLOS CON LETRAS NEGRAS) */
     div.stButton > button {
-        background-color: #F9D61C !important; /* Botón Amarillo */
-        color: #0D1617 !important;            /* Letras Negras Internas */
+        background-color: #F9D61C !important; 
+        color: #0D1617 !important;            
         width: 100% !important;
-        height: 50px !important;               /* Grosor táctil cómodo */
+        height: 50px !important;               
         border-radius: 12px !important;
         font-weight: bold !important;
         font-size: 18px !important;
@@ -113,8 +113,8 @@ st.markdown(
         border: none !important;
     }
     
-    /* ⬛ PROTECCIÓN DE CASILLAS INTERNAS: Mantiene el fondo oscuro del + y - y del selector */
-    input[type="text"], input[type="number"], .stTextInput input, .stSelectbox div {
+    /* ⬛ PROTECCIÓN DE CASILLAS INTERNAS */
+    input[type="text"], input[type="number"], .stNumberInput input, .stSelectbox div {
         background-color: #0D1617 !important;
         color: #F9D61C !important;
         font-family: 'Candara', sans-serif !important;
@@ -245,7 +245,7 @@ st.markdown("### Resumen Mensual")
 nombre_mes_actual = datetime.now().strftime("%B %Y").capitalize()
 st.metric(label=f"Total Gastado en {nombre_mes_actual}", value=f"${total_mes:,.2f}")
 
-# Gráfico de Pizza Centrado y Estable con tu Paleta de 5 Colores
+# Gráfico de Pizza Centrado y Estable con Paleta de 5 Colores
 if not df_mes.empty:
     df_pizza = df_mes.groupby("categoria")["monto"].sum().reset_index()
     colores_gajos = ["#F9D61C", "#1B9E7D", "#0D1617", "#000000", "#0F1D3D"]
@@ -290,25 +290,22 @@ st.markdown("### Anotar Gasto")
 
 col1, col2 = st.columns(2)
 with col1:
-    monto_texto = st.text_input("Monto ($)", value="", placeholder="Ingresá el valor", key="monto_rapido")
+    # Campo numérico que arranca vacío y levanta teclado calculadora
+    monto = st.number_input("Monto ($)", value=None, placeholder="Introduce un número", format="%.2f", key="monto_fijo_v3")
 with col2:
     lista_cats = obtener_categorias()
     lista_limpia = [str(c).replace("('", "").replace("',)", "").replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("'", "").strip() for c in lista_cats]
     categoria_seleccionada = st.selectbox("Categoria", options=lista_limpia)
 
-# 🌟 BOTÓN CONTROLADO NATALMENTE: Muestra la palabra "Anotar" de forma fija e inquebrantable
+# 🌟 CAMBIO ESTRATÉGICO: El botón ahora dice "Cargar" con una clave nueva única para liquidar el bug de caché
 st.markdown("<br>", unsafe_allow_html=True)
-if st.button("Anotar", key="btn_oficial_anotar", use_container_width=True):
-    try:
-        monto_final = float(monto_texto.replace(",", ".")) if monto_texto else 0.0
-        if monto_final <= 0:
-            st.error("El monto tiene que ser mayor a 0.")
-        else:
-            guardar_gasto_db(monto_final, categoria_seleccionada)
-            st.success(f"Anotado ${monto_final:.2f} en {categoria_seleccionada}")
-            st.rerun()
-    except ValueError:
-        st.error("Por favor, ingresá un número válido (ej: 1500 o 450.50).")
+if st.button("Cargar", key="btn_forzado_cargar", use_container_width=True):
+    if monto is None or monto <= 0:
+        st.error("El monto tiene que ser mayor a 0.")
+    else:
+        guardar_gasto_db(monto, categoria_seleccionada)
+        st.success(f"Anotado ${monto:.2f} en {categoria_seleccionada}")
+        st.rerun()
 
 
 # --- BOTONES DE DESPLIEGUE VERTICAL INTERACTIVOS ---
