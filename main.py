@@ -8,7 +8,7 @@ from datetime import datetime
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="iFinance - Gastos Express", page_icon="💰", layout="centered")
 
-# 🎨 INYECCIÓN DE ESTILOS FILTRADA MILIMÉTRICAMENTE (SOLO AFECTA A NUESTRAS BARRAS PREMIUM)
+# 🎨 INYECCIÓN DE ESTILOS DEFINITIVA (MANTIENE TUS 6 ÍTEMS DE ILLUSTRATOR)
 st.markdown(
     """
     <style>
@@ -85,9 +85,15 @@ st.markdown(
         display: none !important;
     }
     
-    /* 🟨 NUEVO TRUCO: CLASE EXCLUSIVA PARA LOS 3 BOTONES DE iFINANCE */
-    .boton-premium {
-        background-color: #F9D61C !important; /* Fondo Amarillo */
+    /* CONTENEDOR DE FORMULARIO */
+    .bloque-formulario, .bloque-seccion {
+        background-color: transparent !important;
+        margin-top: 20px !important;
+    }
+    
+    /* 🟨 FORZADO PREMIUM: Estilo amarillo con letras negras directo sobre todos los botones nativos de la app */
+    div.stButton > button {
+        background-color: #F9D61C !important; /* Botón Amarillo */
         color: #0D1617 !important;            /* Letras Negras Internas */
         width: 100% !important;
         height: 50px !important;               /* Grosor táctil cómodo */
@@ -95,25 +101,27 @@ st.markdown(
         font-weight: bold !important;
         font-size: 18px !important;
         font-family: 'Candara', sans-serif !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        margin-top: 15px !important;
-        margin-bottom: 10px !important;
         border: none !important;
         box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2) !important;
-        text-decoration: none !important;
-    }
-    .boton-premium:active {
-        background-color: #E2C012 !important; /* Oscurece levemente al tocarlo */
+        transition: background-color 0.2s ease;
     }
     
-    /* ⬛ RESETEO MANDATORIO: Fuerza a las casillas y selectores nativos a ser negros puros */
-    input[type="text"], input[type="number"], .stNumberInput input, .stSelectbox div {
+    /* Efecto al tocar o hacer clic */
+    div.stButton > button:hover, div.stButton > button:active, div.stButton > button:focus {
+        background-color: #E2C012 !important;
+        color: #0D1617 !important;
+        border: none !important;
+    }
+    
+    /* ⬛ PROTECCIÓN DE CASILLAS INTERNAS: Mantiene el fondo oscuro del + y - y del selector */
+    input[type="text"], input[type="number"], .stTextInput input, .stSelectbox div {
         background-color: #0D1617 !important;
         color: #F9D61C !important;
         font-family: 'Candara', sans-serif !important;
+    }
+    .stSelectbox button, .stNumberInput button {
+        background-color: #0D1617 !important;
+        color: #F9D61C !important;
     }
     
     /* Alertas internas adaptadas limpias */
@@ -200,7 +208,7 @@ def obtener_historial_db():
     conn.close()
     return filas
 
-# Inicialización de la base de datos v2
+# Inicialización de la base de datos
 init_db()
 
 df_mes = obtener_datos_mes_actual()
@@ -237,10 +245,10 @@ st.markdown("### Resumen Mensual")
 nombre_mes_actual = datetime.now().strftime("%B %Y").capitalize()
 st.metric(label=f"Total Gastado en {nombre_mes_actual}", value=f"${total_mes:,.2f}")
 
-# Gráfico de Pizza Centrado y Estable
+# Gráfico de Pizza Centrado y Estable con tu Paleta de 5 Colores
 if not df_mes.empty:
     df_pizza = df_mes.groupby("categoria")["monto"].sum().reset_index()
-    colores_gajos = ["#F9D61C", "#0F4643", "#D9B814", "#1b635f", "#A68D11"]
+    colores_gajos = ["#F9D61C", "#1B9E7D", "#0D1617", "#000000", "#0F1D3D"]
     
     st.plotly_chart(
         {
@@ -282,30 +290,37 @@ st.markdown("### Anotar Gasto")
 
 col1, col2 = st.columns(2)
 with col1:
-    monto = st.number_input("Monto ($)", min_value=0.0, step=50.0, format="%.2f")
+    monto_texto = st.text_input("Monto ($)", value="", placeholder="Ingresá el valor", key="monto_rapido")
 with col2:
     lista_cats = obtener_categorias()
     lista_limpia = [str(c).replace("('", "").replace("',)", "").replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("'", "").strip() for c in lista_cats]
     categoria_seleccionada = st.selectbox("Categoria", options=lista_limpia)
 
-# Botón 1 Aislado con HTML Seguro (Anotar Gasto)
-btn_anotar = st.html('<button class="boton-premium">Anotar Gasto</button>')
-if btn_anotar:
-    if monto > 0:
-        guardar_gasto_db(monto, categoria_seleccionada)
-        st.success(f"Anotado ${monto:.2f} en {categoria_seleccionada}")
-        st.rerun()
+# 🌟 BOTÓN CONTROLADO NATALMENTE: Muestra la palabra "Anotar" de forma fija e inquebrantable
+st.markdown("<br>", unsafe_allow_html=True)
+if st.button("Anotar", key="btn_oficial_anotar", use_container_width=True):
+    try:
+        monto_final = float(monto_texto.replace(",", ".")) if monto_texto else 0.0
+        if monto_final <= 0:
+            st.error("El monto tiene que ser mayor a 0.")
+        else:
+            guardar_gasto_db(monto_final, categoria_seleccionada)
+            st.success(f"Anotado ${monto_final:.2f} en {categoria_seleccionada}")
+            st.rerun()
+    except ValueError:
+        st.error("Por favor, ingresá un número válido (ej: 1500 o 450.50).")
 
 
-# --- BOTONES DE DESPLIEGUE VERTICAL AISLADOS ---
+# --- BOTONES DE DESPLIEGUE VERTICAL INTERACTIVOS ---
 
 if "mostrar_historial" not in st.session_state:
     st.session_state.mostrar_historial = False
 if "mostrar_config" not in st.session_state:
     st.session_state.mostrar_config = False
 
-# Botón 2 Aislado con HTML Seguro (Historial)
-if st.html('<button class="boton-premium">Ver Ultimos Movimientos</button>'):
+# Botón 2 Oficial (Historial)
+st.markdown("<br>", unsafe_allow_html=True)
+if st.button("Ver Ultimos Movimientos", key="btn_ver_historial", use_container_width=True):
     st.session_state.mostrar_historial = not st.session_state.mostrar_historial
 
 if st.session_state.mostrar_historial:
@@ -318,16 +333,16 @@ if st.session_state.mostrar_historial:
             c_limpia = str(c).replace("('", "").replace("',)", "").replace("(", "").replace(")", "").replace("[", "").replace("]", "").replace("'", "").strip()
             st.info(f"${m:,.2f} — {c_limpia} \n {f}")
 
-# Botón 3 Aislado con HTML Seguro (Configuración)
-if st.html('<button class="boton-premium">Configurar Categorias</button>'):
+# Botón 3 Oficial (Configuración)
+st.markdown("<br>", unsafe_allow_html=True)
+if st.button("Configurar Categorias", key="btn_ver_config", use_container_width=True):
     st.session_state.mostrar_config = not st.session_state.mostrar_config
 
 if st.session_state.mostrar_config:
     st.markdown("<br>", unsafe_allow_html=True)
     nueva_cat = st.text_input("Nombre de la nueva categoria (Ej: Entretenimiento)").strip()
     
-    # Este botón interno de confirmación sí es estándar y seguro
-    if st.button("Crear Nueva Categoria", type="primary", use_container_width=True):
+    if st.button("Crear Nueva Categoria", key="btn_crear_nueva_cat_final", use_container_width=True):
         if not nueva_cat:
             st.warning("Escribi un nombre.")
         else:
@@ -340,3 +355,14 @@ if st.session_state.mostrar_config:
                 agregar_categoria_db(nueva_cat)
                 st.success(f"Categoria '{nueva_cat}' agregada con éxito.")
                 st.rerun()
+
+# --- BOTÓN DE RESET TEMPORAL ---
+st.markdown("<br><br><br>---")
+if st.button("🚨 Resetear Base de Datos (Purgar Millones)", use_container_width=True):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS gastos")
+    conn.commit()
+    conn.close()
+    st.warning("Base de datos purgada con éxito. Cargá un gasto nuevo.")
+    st.rerun()
